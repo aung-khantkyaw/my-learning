@@ -15,12 +15,21 @@ import {
 import type { Request, Response } from 'express';
 import { Observable, of } from 'rxjs';
 import { CreateCatDto } from './dto/create-cat.dto';
+import { CatsService } from './cats.service';
+import { Cat } from './interfaces/cat.interface';
 
 @Controller('cats')
 export class CatsController {
+  constructor(private catsService: CatsService) {}
+
+  // @Get()
+  // findAll(): string {
+  //   return 'This action returns all cats';
+  // }
+
   @Get()
-  findAll(): string {
-    return 'This action returns all cats';
+  async findAll(): Promise<Cat[]> {
+    return this.catsService.findAll();
   }
 
   @Get('breed')
@@ -39,9 +48,15 @@ export class CatsController {
   }
 
   // Resources
+  // @Post()
+  // create(): string {
+  //   return 'This action adds a new cat';
+  // }
+
+  // service usage
   @Post()
-  create(): string {
-    return 'This action adds a new cat';
+  async create(@Body() createCatDto: CreateCatDto) {
+    this.catsService.create(createCatDto);
   }
 
   // Route wildcards
@@ -82,12 +97,12 @@ export class CatsController {
   }
 
   // Asynchronicity
-  @Get()
+  @Get('async')
   async asynchronous(): Promise<any[]> {
     return await Promise.resolve([]);
   }
 
-  @Get()
+  @Get('observable')
   observableStreams(): Observable<any[]> {
     return of([]);
   }
