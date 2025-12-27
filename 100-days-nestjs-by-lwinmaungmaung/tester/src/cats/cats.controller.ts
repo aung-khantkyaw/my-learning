@@ -1,9 +1,11 @@
 import {
+  // BadRequestException,
   Body,
   Controller,
   Get,
   Header,
   HttpCode,
+  HttpException,
   HttpStatus,
   Param,
   Post,
@@ -11,12 +13,15 @@ import {
   Redirect,
   Req,
   Res,
+  UseFilters,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Observable, of } from 'rxjs';
 import { CreateCatDto } from './dto/create-cat.dto';
 import { CatsService } from './cats.service';
 import { Cat } from './interfaces/cat.interface';
+import { HttpExceptionsFilter } from 'src/http-exception.filter';
+import { ForbiddenException } from 'src/forbidden.exception';
 
 @Controller('cats')
 export class CatsController {
@@ -29,11 +34,30 @@ export class CatsController {
 
   @Get()
   async findAll(): Promise<Cat[]> {
-    return this.catsService.findAll();
+    try {
+      return this.catsService.findAll();
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: 'Unable to fetch cats',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        {
+          cause: error,
+        },
+      );
+    }
   }
 
   @Get('breed')
+  @UseFilters(HttpExceptionsFilter)
   findBreeds(): string {
+    throw new ForbiddenException();
+    // throw new BadRequestException('Bad Request Exception', {
+    //   cause: new Error(),
+    //   description: 'Bad Request',
+    // });
     return "This action returns all cats' breeds";
   }
 
