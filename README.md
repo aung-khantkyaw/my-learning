@@ -1,6 +1,6 @@
 # My Learning
 
-This repository contains my notes and projects related to various learning topics. Feel free to explore and contribute!
+This repository contains my notes and projects related to various learning topics.
 
 ## Topics Covered
 
