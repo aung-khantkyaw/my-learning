@@ -621,3 +621,253 @@ export class AppModule {}
 ```
 
 In this example, the `CatsModule` is imported into the `AppModule` using the `imports` array. This allows the components defined in the `CatsModule`, such as the `CatsController` and `CatsService`, to be used within the main application module.
+
+### Day 4 : Middleware, Exception filters
+
+***What is Middleware?***
+
+- Middleware functions are functions that have access to the request object (req), the response object (res), and the next middleware function in the application’s request-response cycle. The next middleware function is commonly denoted by a variable named next.
+- Middleware functions can perform the following tasks:
+  - Execute any code.
+  - Make changes to the request and the response objects.
+  - End the request-response cycle.
+  - Call the next middleware function in the stack.
+  - If the current middleware function does not end the request-response cycle, it must call next() to pass control to the next middleware function. Otherwise, the request will be left hanging.
+
+***Learn more about Middleware***
+
+- [Middleware - NestJS Documentation](https://docs.nestjs.com/middleware)
+
+In [logger middleware](./tester/src/logger.middleware.ts) -
+
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { NextFunction } from 'express';
+
+@Injectable()
+export class LoggerMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: NextFunction) {
+    console.log('Request...');
+    next();
+  }
+}
+```
+
+In this example, we define a middleware class `LoggerMiddleware` that implements the `NestMiddleware` interface. The `use` method is called for each incoming request. It logs 'Request...' to the console and then calls `next()` to pass control to the next middleware function in the stack.
+
+```typescript
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('cats');
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes({ path: 'cats/', method: RequestMethod.GET });
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes({ path: 'cats/{*cat_id}', method: RequestMethod.GET });
+    consumer
+      .apply(LoggerMiddleware)
+      .exclude({ path: 'cats', method: RequestMethod.POST })
+      .forRoutes(CatsController);
+  }
+}
+```
+
+In this example, we configure the `LoggerMiddleware` to be applied to specific routes in the `AppModule`.
+The first line applies the middleware to all routes under the 'cats' path.
+The second line applies the middleware specifically to GET requests on the 'cats/' path. This ensures that the middleware is executed for requests matching these routes.
+The third line applies the middleware to GET requests on any route that matches the pattern 'cats/{*cat_id}', allowing for dynamic cat IDs.
+The fourth block demonstrates how to exclude the middleware from being applied to POST requests on the 'cats' path while still applying it to all other routes defined in the `CatsController`. This provides flexibility in controlling where the middleware is executed within the application.
+
+***Global Middleware***
+
+```typescript
+import { Request, Response, NextFunction } from 'express';
+
+export function LoggerMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  console.log(`Request... Method: ${req.method}, URL: ${req.originalUrl}`);
+  next();
+}
+```
+
+In this example, we define a global middleware function `LoggerMiddleware` that logs the HTTP method and URL of each incoming request. It takes the `req`, `res`, and `next` parameters, logs the request details to the console, and then calls `next()` to pass control to the next middleware function in the stack.
+
+To apply middleware globally across the entire application, you can use the `app.use()` method in the `main.ts` file.
+
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { LoggerMiddleware } from './logger.middleware';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.use(LoggerMiddleware); // Global Middleware
+  await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap().catch((err: any) => {
+  console.error('Error during application bootstrap:', err);
+});
+```
+
+In this example, the `LoggerMiddleware` is applied globally to all incoming requests in the application. By calling `app.use(LoggerMiddleware)`, every request will pass through the `LoggerMiddleware`, allowing it to log 'Request...' for each request before proceeding to the next middleware or route handler. This approach ensures that the middleware is consistently applied across all routes in the application.
+
+***Exception Filters***
+
+- Exception filters are used to handle exceptions thrown in your application. They provide a way to catch and process errors, allowing you to return custom responses to the client.
+
+***Learn more about Exception Filters***
+
+- [Exception Filters - NestJS Documentation](https://docs.nestjs.com/exception-filters)
+
+```typescript
+  @Get()
+  async findAll(): Promise<Cat[]> {
+    try {
+      return this.catsService.findAll();
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: 'Unable to fetch cats',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        {
+          cause: error,
+        },
+      );
+    }
+  }
+```
+
+In this example, the `findAll` method in the `CatsController` attempts to retrieve all cats using the `catsService`. If an error occurs during this process, it catches the error and throws a new `HttpException`. The exception includes a custom error message 'Unable to fetch cats' and sets the HTTP status code to 500 (Internal Server Error). The original error is passed as the cause of the exception for further debugging if needed. This allows for graceful error handling and provides meaningful feedback to the client when an error occurs.
+
+```typescript
+import { HttpException, HttpStatus } from '@nestjs/common';
+
+export class ForbiddenException extends HttpException {
+  constructor() {
+    super('FORBIDDEN', HttpStatus.FORBIDDEN);
+  }
+}
+```
+
+In this example, we define a custom exception class `ForbiddenException` that extends the built-in `HttpException` class from NestJS. The constructor of the `ForbiddenException` class calls the parent constructor with a custom error message 'FORBIDDEN' and sets the HTTP status code to 403 (Forbidden). This custom exception can be thrown in the application whenever a forbidden access scenario occurs, providing a clear and consistent way to handle such errors.
+
+```typescript
+import { BadRequestException } from '@nestjs/common';
+import { ForbiddenException } from 'src/forbidden.exception';
+
+  @Get('breed')
+  findBreeds(): string {
+    throw new ForbiddenException;
+    throw new BadRequestException('Bad Request Exception', {
+      cause: new Error(),
+      description: 'Bad Request',
+    });
+    return "This action returns all cats' breeds";
+  }
+```
+
+In this example, the `findBreeds` method in the `CatsController` demonstrates how to throw custom exceptions. It first throws a `ForbiddenException`, which we defined earlier, indicating that access to this route is forbidden. Following that, it throws a `BadRequestException`, which is a built-in exception in NestJS. The `BadRequestException` includes a custom error message 'Bad Request', along with additional options such as the cause of the error and a description. This allows for clear and specific error handling within the controller method, providing meaningful feedback to the client when an error occurs.
+
+- In [exception filter](./tester/src/http-exception.filter.ts) -
+
+```typescript
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+} from '@nestjs/common';
+import { HttpArgumentsHost } from '@nestjs/common/interfaces';
+import { Request, Response } from 'express';
+@Catch(HttpException)
+export class HttpExceptionsFilter implements ExceptionFilter {
+  catch(exception: HttpException, host: ArgumentsHost): any {
+    const ctx: HttpArgumentsHost = host.switchToHttp();
+    const response: Response = ctx.getResponse<Response>();
+    const request: Request = ctx.getRequest<Request>();
+    const status: number = exception.getStatus();
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    });
+  }
+}
+```
+
+In this example, we define a custom exception filter `HttpExceptionsFilter` that implements the `ExceptionFilter` interface. The `@Catch(HttpException)` decorator indicates that this filter will handle exceptions of type `HttpException`. The `catch` method is called whenever an `HttpException` is thrown in the application. It retrieves the HTTP context using `host.switchToHttp()`, extracts the response and request objects, and gets the status code from the exception. Finally, it sends a JSON response to the client with the status code, current timestamp, and request URL. This custom exception filter allows for consistent error handling and provides meaningful feedback to the client when an HTTP exception occurs.
+
+```typescript
+import { Get, UseFilters } from '@nestjs/common';
+import { HttpExceptionsFilter } from 'src/http-exception.filter';
+import { ForbiddenException } from 'src/forbidden.exception';
+
+  @Get('breed')
+  @UseFilters(HttpExceptionsFilter)
+  findBreeds(): string {
+    throw new ForbiddenException;
+    return "This action returns all cats' breeds";
+  }
+```
+
+In this example, the `findBreeds` method in the `CatsController` is decorated with the `@UseFilters(HttpExceptionsFilter)` decorator. This indicates that the `HttpExceptionsFilter` will be applied to this specific route. When the `findBreeds` method is called, it throws a `ForbiddenException`, which will be caught by the `HttpExceptionsFilter`. The filter will then handle the exception and send a JSON response to the client with the appropriate status code, timestamp, and request URL. This allows for consistent error handling for exceptions thrown within this route.
+
+```typescript
+@Controller()
+@UseFilters(new HttpExceptionFilter())
+export class CatsController {}
+```
+
+In this example, the `CatsController` class is decorated with the `@UseFilters(new HttpExceptionFilter())` decorator. This indicates that the `HttpExceptionFilter` will be applied to all routes within the `CatsController`. Any exceptions thrown in the controller's methods will be caught by the `HttpExceptionFilter`, allowing for consistent error handling across all routes in the controller. This approach ensures that any HTTP exceptions are processed uniformly, providing meaningful feedback to the client when errors occur.
+
+```typescript
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.useGlobalFilters(new HttpExceptionFilter());
+  await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap();
+```
+
+In this example, the `HttpExceptionFilter` is applied globally to the entire application using the `app.useGlobalFilters()` method. This means that any exceptions thrown in any controller or service within the application will be caught by the `HttpExceptionFilter`. This approach ensures consistent error handling across the entire application, providing meaningful feedback to the client whenever an HTTP exception occurs.
+
+***Catch Everything Filter***
+
+```typescript
+import { HttpAdapterHost } from '@nestjs/core';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+
+@Catch()
+export class CatchEverythingFilter implements ExceptionFilter {
+  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
+
+  catch(exception: unknown, host: ArgumentsHost): void {
+    const { httpAdapter } = this.httpAdapterHost;
+    const ctx = host.switchToHttp();
+    const httpStatus =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const responseBody = {
+      statusCode: httpStatus,
+      timestamp: new Date().toISOString(),
+      path: httpAdapter.getRequestUrl(ctx.getRequest()),
+    };
+    httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);
+  }
+}
+```
+
+This filter catches all exceptions in your NestJS application. It uses the `HttpAdapterHost` to access the underlying HTTP adapter, determines the status code, and sends a consistent error response with status, timestamp, and request path.
