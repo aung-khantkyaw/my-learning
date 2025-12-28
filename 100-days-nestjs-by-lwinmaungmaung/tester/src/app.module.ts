@@ -26,7 +26,7 @@ import { ValidationPipe } from './Validation/validation.pipe';
     {
       provide: APP_PIPE,
       useClass: ValidationPipe,
-    }
+    },
   ],
 })
 export class AppModule implements NestModule {

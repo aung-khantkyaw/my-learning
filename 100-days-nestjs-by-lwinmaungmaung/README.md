@@ -938,3 +938,45 @@ export class ZodValidationPipe implements PipeTransform {
 ```
 
 In this example, we define a custom pipe `ZodValidationPipe` that implements the `PipeTransform` interface. The constructor takes a `ZodSchema` as an argument, which is used for validation. The `transform` method attempts to parse the incoming `value` using the provided schema. If the parsing is successful, it returns the parsed value. If the parsing fails, it throws a `BadRequestException` with the message 'Validation Failed'. This pipe can be used to validate incoming data against a defined schema before it reaches the route handler.
+
+##### Day 6 : Guards
+
+***What is Guard?***
+
+- Guards are used to determine whether a request should be handled by the route handler or not. They are typically used for authentication and authorization purposes.
+
+***Learn more about Guards***
+
+- [Guards - NestJS Documentation](https://docs.nestjs.com/guards)
+
+```typescript
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Observable } from 'rxjs';
+
+@Injectable()
+export class AuthGuard implements CanActivate {
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | Observable<boolean> {
+    const request = context.switchToHttp().getRequest();
+    return validateRequest(request);
+  }
+}
+```
+
+In this example, we define a custom guard `AuthGuard` that implements the `CanActivate` interface. The `canActivate` method is called for each incoming request to determine whether the request should be allowed to proceed to the route handler. It retrieves the request object from the execution context and calls a hypothetical `validateRequest` function to perform authentication or authorization checks. The method returns a boolean value, a Promise that resolves to a boolean, or an Observable that emits a boolean, indicating whether the request is allowed or denied.
+
+***Using Guards in Controllers***
+
+```typescript
+@Controller('cats')
+@UseGuards(RolesGuard)
+export class CatsController {}
+
+@Controller('cats')
+@UseGuards(new RolesGuard())
+export class CatsController {}
+```
+
+In this example, the `CatsController` class is decorated with the `@UseGuards(RolesGuard)` decorator. This indicates that the `RolesGuard` will be applied to all routes within the `CatsController`. Any incoming requests to the controller's methods will first pass through the `RolesGuard`, which will determine whether the request should be allowed to proceed based on the defined authorization logic. This approach ensures that access control is consistently enforced across all routes in the controller.
+
