@@ -871,3 +871,70 @@ export class CatchEverythingFilter implements ExceptionFilter {
 ```
 
 This filter catches all exceptions in your NestJS application. It uses the `HttpAdapterHost` to access the underlying HTTP adapter, determines the status code, and sends a consistent error response with status, timestamp, and request path.
+
+#### Day 5 : Pipes
+
+***What is Pipe?***
+
+- Pipes operate on the arguments being processed by a controller route handler. They have two typical use cases: transformation and validation.
+
+***Learn more about Pipes***
+
+- [Pipes - NestJS Documentation](https://docs.nestjs.com/pipes)
+
+```typescript
+  @Get('cat_id/:id')
+  findOne(
+    @Param(
+      'id',
+      new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
+    )
+    @Query('id', ParseIntPipe)
+    id: number,
+  ) {
+    return this.catsService.findOne(id);
+  }
+```
+
+In this example, the `findOne` method in the `CatsController` uses the `ParseIntPipe` to validate and transform the `id` parameter from both the route parameter and query parameter. The `ParseIntPipe` converts the incoming string value to an integer. If the conversion fails, it throws an exception with a status code of 406 (Not Acceptable) as specified in the options. This ensures that the `id` parameter is always a valid integer before being passed to the service method for further processing.
+
+***Custom pipes***
+
+- [custom pipe - validate cat age](./tester/src/Validation/validation.pipe.ts)
+
+```typescript
+import { ArgumentMetadata, Injectable, PipeTransform } from '@nestjs/common';
+
+@Injectable()
+export class ValidationPipe implements PipeTransform {
+  transform(value: any, metadata: ArgumentMetadata): any {
+    return value;
+  }
+}
+```
+
+In this example, we define a custom pipe `ValidationPipe` that implements the `PipeTransform` interface. The `transform` method is called whenever the pipe is applied to a route handler parameter. It takes the incoming `value` and `metadata` as arguments. In this basic implementation, the method simply returns the original value without any transformation or validation. However, you can extend this method to include custom validation logic or data transformation as needed for your application.
+
+```typescript
+import {
+  ArgumentMetadata,
+  BadRequestException,
+  PipeTransform,
+} from '@nestjs/common';
+import { ZodSchema } from 'zod';
+
+export class ZodValidationPipe implements PipeTransform {
+  constructor(private schema: ZodSchema) {}
+
+  transform(value: any, metadata: ArgumentMetadata) {
+    try {
+      const parsedValue: any = this.schema.parse(value);
+      return parsedValue;
+    } catch (error) {
+      throw new BadRequestException('Validation Failed');
+    }
+  }
+}
+```
+
+In this example, we define a custom pipe `ZodValidationPipe` that implements the `PipeTransform` interface. The constructor takes a `ZodSchema` as an argument, which is used for validation. The `transform` method attempts to parse the incoming `value` using the provided schema. If the parsing is successful, it returns the parsed value. If the parsing fails, it throws a `BadRequestException` with the message 'Validation Failed'. This pipe can be used to validate incoming data against a defined schema before it reaches the route handler.
