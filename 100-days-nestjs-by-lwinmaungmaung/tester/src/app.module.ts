@@ -10,8 +10,9 @@ import { CatsResourceModule } from './cats-resource/cats-resource.module';
 import { CatsModule } from './cats/cats.module';
 import { LoggerMiddleware } from './logger.middleware';
 import { CatsController } from './cats/cats.controller';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { CatchEverythingFilter } from './CatchEverything.filter';
+import { ValidationPipe } from './Validation/validation.pipe';
 
 @Module({
   imports: [CatsResourceModule, CatsModule],
@@ -22,6 +23,10 @@ import { CatchEverythingFilter } from './CatchEverything.filter';
       provide: APP_FILTER,
       useClass: CatchEverythingFilter,
     },
+    {
+      provide: APP_PIPE,
+      useClass: ValidationPipe,
+    }
   ],
 })
 export class AppModule implements NestModule {

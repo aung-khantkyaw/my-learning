@@ -8,12 +8,15 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Post,
   Query,
   Redirect,
   Req,
   Res,
   UseFilters,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Observable, of } from 'rxjs';
@@ -22,6 +25,8 @@ import { CatsService } from './cats.service';
 import { Cat } from './interfaces/cat.interface';
 import { HttpExceptionsFilter } from 'src/http-exception.filter';
 import { ForbiddenException } from 'src/forbidden.exception';
+import { ZodValidationPipe } from 'src/Validation/zod.validation.pipe';
+import { CreateCatSchema } from './schema/create-cat.schema';
 
 @Controller('cats')
 export class CatsController {
@@ -79,7 +84,8 @@ export class CatsController {
 
   // service usage
   @Post()
-  async create(@Body() createCatDto: CreateCatDto) {
+  @UsePipes(new ZodValidationPipe(CreateCatSchema))
+  async create(@Body(new ValidationPipe()) createCatDto: CreateCatDto) {
     this.catsService.create(createCatDto);
   }
 
@@ -114,10 +120,22 @@ export class CatsController {
   }
 
   // Route parameters
+  // @Get('cat_id/:id')
+  // findOne(@Param('id') id: string): string {
+  //   console.log(id);
+  //   return `This action returns a #${id} cat`;
+  // }
+
   @Get('cat_id/:id')
-  findOne(@Param('id') id: string): string {
-    console.log(id);
-    return `This action returns a #${id} cat`;
+  findOne(
+    // @Param(
+    //   'id',
+    //   new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
+    // )
+    @Query('id', ParseIntPipe)
+    id: number,
+  ) {
+    return this.catsService.findOne(id);
   }
 
   // Asynchronicity
