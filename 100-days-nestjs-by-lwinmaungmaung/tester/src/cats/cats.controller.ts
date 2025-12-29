@@ -15,6 +15,7 @@ import {
   Req,
   Res,
   UseFilters,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -27,8 +28,10 @@ import { HttpExceptionsFilter } from 'src/http-exception.filter';
 import { ForbiddenException } from 'src/forbidden.exception';
 import { ZodValidationPipe } from 'src/Validation/zod.validation.pipe';
 import { CreateCatSchema } from './schema/create-cat.schema';
+import { LoggingInterceptor } from 'src/Interceptors/loggin.interceptor';
 
 @Controller('cats')
+@UseInterceptors(new LoggingInterceptor())
 export class CatsController {
   constructor(private catsService: CatsService) {}
 
