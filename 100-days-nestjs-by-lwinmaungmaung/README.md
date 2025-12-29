@@ -980,3 +980,14 @@ export class CatsController {}
 
 In this example, the `CatsController` class is decorated with the `@UseGuards(RolesGuard)` decorator. This indicates that the `RolesGuard` will be applied to all routes within the `CatsController`. Any incoming requests to the controller's methods will first pass through the `RolesGuard`, which will determine whether the request should be allowed to proceed based on the defined authorization logic. This approach ensures that access control is consistently enforced across all routes in the controller.
 
+### Day 7 : Interceptors
+
+***What is Interceptor?***
+
+- Interceptors are used to intercept and modify the request and response objects. They can be used for logging, caching, transforming data, and more.
+
+***Learn more about Interceptors***
+
+- [Interceptors - NestJS Documentation](https://docs.nestjs.com/interceptors)
+
+```typescript
